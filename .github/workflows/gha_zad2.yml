@@ -1,6 +1,7 @@
-name: CI/CD Pipeline - Zadanie 2
+name: actions - zadanie 2
 
 on:
+  workflow_dispatch:
   push:
     branches: [ "main", "master" ]
     tags: [ 'v*.*.*' ]
