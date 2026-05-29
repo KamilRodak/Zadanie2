@@ -9,6 +9,7 @@ on:
     branches: [ "main", "master" ]
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   REGISTRY_GHCR: ghcr.io
   REGISTRY_DOCKERHUB: docker.io
   IMAGE_NAME_GHCR: ${{ github.repository_owner }}/zadanie1-app
