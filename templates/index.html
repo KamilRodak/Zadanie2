@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Zadanie1</title>
+</head>
+<body style="font-family: Arial; text-align: center; padding: 50px;">
+    <h1>Wybierz miasto</h1>
+    <form method="POST">
+        <input list="miasta" name="miasto" placeholder="Wpisz lub wybierz miasto" required>
+            <datalist id="miasta">
+                {% for miasto in miasta %}
+                    <option value="{{ miasto.city }}">{{ miasto.country }}</option>
+                {% endfor %}
+            </datalist>
+        <button type="submit">Sprawdź</button>
+    </form>
+    {% if pogoda %}
+        <h2>{{ pogoda.name }}, {{ pogoda.sys.country }}</h2>
+        <h3>{{ pogoda.main.temp }}°C</h3>
+        <p>{{ pogoda.weather[0].description }}</p>
+    {% endif %}
+</body>
+</html>

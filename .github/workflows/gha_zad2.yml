@@ -1,0 +1,95 @@
+name: CI/CD Pipeline - Zadanie 2
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    tags: [ 'v*.*.*' ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+env:
+  REGISTRY_GHCR: ghcr.io
+  REGISTRY_DOCKERHUB: docker.io
+  IMAGE_NAME_GHCR: ${{ github.repository_owner }}/zadanie1-app
+  IMAGE_NAME_DOCKERHUB: ${{ secrets.DOCKERHUB_USERNAME }}/zadanie1-cache
+
+jobs:
+  build-and-secure:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU (for multi-architecture support)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY_GHCR }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to DockerHub (for Cache)
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY_DOCKERHUB }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract Docker metadata for GHCR
+        id: meta-ghcr
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME_GHCR }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=sha,format=short,prefix=
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+
+      # KROK 1: Lokalna budowa jednej architektury na potrzeby szybkiego skanu bezpieczeństwa
+      - name: Build local image for CVE scanning
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true 
+          tags: local-scan-target:latest
+          cache-from: type=registry,ref=${{ env.REGISTRY_DOCKERHUB }}/${{ env.IMAGE_NAME_DOCKERHUB }}:cache
+          ssh: default
+
+      # KROK 2: Test CVE - Wymuszona blokada wysyłki przy błędach HIGH lub CRITICAL
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'local-scan-target:latest'
+          format: 'table'
+          exit-code: '1' # Kod '1' przerywa pipeline, jeśli zostaną znalezione poniższe podatności
+          ignore-unfixed: true
+          severity: 'HIGH,CRITICAL' # Skanowanie pod kątem błędów ciężkich (HIGH) oraz krytycznych (CRITICAL)
+
+      - name: Display scan failure information
+        if: failure() && steps.trivy-scan.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.setFailed('Wysyłanie przerwane: Trivy wykrył krytyczne lub wysokie podatności (HIGH/CRITICAL) w obrazie');
+          
+      # KROK 3: Docelowe budowanie wieloarchitekturowe i wysyłka (Uruchomi się TYLKO gdy Krok 2 przejdzie pomyślnie)
+      - name: Build and push multi-arch image to GHCR
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta-ghcr.outputs.tags }}
+          labels: ${{ steps.meta-ghcr.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY_DOCKERHUB }}/${{ env.IMAGE_NAME_DOCKERHUB }}:cache
+          cache-to: type=registry,ref=${{ env.REGISTRY_DOCKERHUB }}/${{ env.IMAGE_NAME_DOCKERHUB }}:cache,mode=max
+          ssh: default
