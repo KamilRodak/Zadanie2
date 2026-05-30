@@ -1,6 +1,7 @@
-name: CI/CD Pipeline - Zadanie 2
+name: Zadanie 2 - CI/CD
 
 on:
+  workflow_dispatch:
   push:
     branches: [ "main", "master" ]
     tags: [ 'v*.*.*' ]
@@ -11,8 +12,8 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   REGISTRY_GHCR: ghcr.io
   REGISTRY_DOCKERHUB: docker.io
-  IMAGE_NAME_GHCR: ${{ github.repository_owner }}/zadanie1-app
-  IMAGE_NAME_DOCKERHUB: ${{ secrets.DOCKERHUB_USERNAME }}/zadanie1-cache
+  IMAGE_NAME_GHCR: ${{ github.repository_owner }}/zadanie2-app
+  IMAGE_NAME_DOCKERHUB: ${{ secrets.DOCKERHUB_USERNAME }}/zadanie2-cache
 
 jobs:
   build-and-secure:
@@ -22,23 +23,23 @@ jobs:
       packages: write
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Set up QEMU (for multi-architecture support)
+      - name: QEMU Set up
         uses: docker/setup-qemu-action@v3
 
-      - name: Set up Docker Buildx
+      - name: Buildx Set up
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to GitHub Container Registry (GHCR)
+      - name: Zaloguj do ghcr.io
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY_GHCR }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Log in to DockerHub (for Cache)
+      - name: Zaloguj do Dockerhuba
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY_DOCKERHUB }}
@@ -56,7 +57,7 @@ jobs:
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
 
       # KROK 1: Lokalna budowa jednej architektury na potrzeby szybkiego skanu (bez parametrów ssh)
-      - name: Build local image for CVE scanning
+      - name: Zbuduj lokalnie obraz do skanu
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -65,7 +66,7 @@ jobs:
           cache-from: type=registry,ref=${{ env.REGISTRY_DOCKERHUB }}/${{ env.IMAGE_NAME_DOCKERHUB }}:cache
 
       # KROK 2: Test CVE - Wymuszona blokada wysyłki przy błędach HIGH lub CRITICAL
-      - name: Run Trivy vulnerability scanner
+      - name: Skanowanie obrazu Trivy
         id: trivy-scan
         uses: aquasecurity/trivy-action@master
         with:
@@ -76,15 +77,15 @@ jobs:
           severity: 'HIGH,CRITICAL'
 
       # Wyświetlenie informacji o błędzie po nieudanym skanie
-      - name: Display scan failure information
+      - name: Jesli wykryto bledy, wyswietl informacje i przerwij
         if: failure() && steps.trivy-scan.outcome == 'failure'
         uses: actions/github-script@v7
         with:
           script: |
-            core.setFailed('❌ WYSYŁKA PRZERWANA: Skaner Trivy wykrył krytyczne lub wysokie podatności (HIGH/CRITICAL) w obrazie. Przeanalizuj powyższy raport tabelaryczny, aby zidentyfikować podatne pakiety.');
+            core.setFailed('Wykryto podatnosci HIGH lub CRITICAL');
 
       # KROK 3: Docelowe budowanie wieloarchitekturowe i wysyłka (bez parametrów ssh)
-      - name: Build and push multi-arch image to GHCR
+      - name: Zbuduj i wypchnij GHCR
         if: success()
         uses: docker/build-push-action@v6
         with:
