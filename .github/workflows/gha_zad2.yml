@@ -46,7 +46,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Extract Docker metadata for GHCR
+      - name: Ekstrakcja metadanych dla GHCR
         id: meta-ghcr
         uses: docker/metadata-action@v5
         with:
