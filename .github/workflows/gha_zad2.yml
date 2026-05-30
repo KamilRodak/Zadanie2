@@ -1,7 +1,6 @@
-name: actions - zadanie 2
+name: CI/CD Pipeline - Zadanie 2
 
 on:
-  workflow_dispatch:
   push:
     branches: [ "main", "master" ]
     tags: [ 'v*.*.*' ]
@@ -56,7 +55,7 @@ jobs:
             type=sha,format=short,prefix=
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
 
-      # KROK 1: Lokalna budowa jednej architektury na potrzeby szybkiego skanu bezpieczeństwa
+      # KROK 1: Lokalna budowa jednej architektury na potrzeby szybkiego skanu (bez parametrów ssh)
       - name: Build local image for CVE scanning
         uses: docker/build-push-action@v6
         with:
@@ -64,27 +63,29 @@ jobs:
           load: true 
           tags: local-scan-target:latest
           cache-from: type=registry,ref=${{ env.REGISTRY_DOCKERHUB }}/${{ env.IMAGE_NAME_DOCKERHUB }}:cache
-          ssh: default
 
       # KROK 2: Test CVE - Wymuszona blokada wysyłki przy błędach HIGH lub CRITICAL
       - name: Run Trivy vulnerability scanner
+        id: trivy-scan
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: 'local-scan-target:latest'
           format: 'table'
-          exit-code: '1' # Kod '1' przerywa pipeline, jeśli zostaną znalezione poniższe podatności
+          exit-code: '1'
           ignore-unfixed: true
-          severity: 'HIGH,CRITICAL' # Skanowanie pod kątem błędów ciężkich (HIGH) oraz krytycznych (CRITICAL)
+          severity: 'HIGH,CRITICAL'
 
+      # Wyświetlenie informacji o błędzie po nieudanym skanie
       - name: Display scan failure information
         if: failure() && steps.trivy-scan.outcome == 'failure'
         uses: actions/github-script@v7
         with:
           script: |
-            core.setFailed('Wysyłanie przerwane: Trivy wykrył krytyczne lub wysokie podatności (HIGH/CRITICAL) w obrazie');
-          
-      # KROK 3: Docelowe budowanie wieloarchitekturowe i wysyłka (Uruchomi się TYLKO gdy Krok 2 przejdzie pomyślnie)
+            core.setFailed('❌ WYSYŁKA PRZERWANA: Skaner Trivy wykrył krytyczne lub wysokie podatności (HIGH/CRITICAL) w obrazie. Przeanalizuj powyższy raport tabelaryczny, aby zidentyfikować podatne pakiety.');
+
+      # KROK 3: Docelowe budowanie wieloarchitekturowe i wysyłka (bez parametrów ssh)
       - name: Build and push multi-arch image to GHCR
+        if: success()
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -94,4 +95,3 @@ jobs:
           labels: ${{ steps.meta-ghcr.outputs.labels }}
           cache-from: type=registry,ref=${{ env.REGISTRY_DOCKERHUB }}/${{ env.IMAGE_NAME_DOCKERHUB }}:cache
           cache-to: type=registry,ref=${{ env.REGISTRY_DOCKERHUB }}/${{ env.IMAGE_NAME_DOCKERHUB }}:cache,mode=max
-          ssh: default
