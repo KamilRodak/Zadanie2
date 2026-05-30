@@ -32,8 +32,9 @@ D:\Pliki\Pliki Studia\Programowanie_aplikacji_w_chmurze_obliczeniowej\Zadanie2>g
 ✓ Set Actions secret DOCKERHUB_TOKEN for KamilRodak/Zadanie2
 ```
 ---
-# ręcznę włączenie i sprawdzenie działania łańcucha GHActions
+# testy GHActions
 
+### poprawne działanie
 ```
 D:\Pliki\Pliki Studia\Programowanie_aplikacji_w_chmurze_obliczeniowej\Zadanie2>gh workflow run
 ? Select a workflow Zadanie 2 - CI/CD (gha_zad2.yml)
@@ -79,4 +80,55 @@ build-and-secure: .github#2
 ✓ Run Zadanie 2 - CI/CD (26692603964) completed with 'success'
 
 D:\Pliki\Pliki Studia\Programowanie_aplikacji_w_chmurze_obliczeniowej\Zadanie2>
+```
+
+### wystąpenie błędów HIGH lub CRITICAL
+```
+D:\Pliki\Pliki Studia\Programowanie_aplikacji_w_chmurze_obliczeniowej\Zadanie2>gh workflow run
+? Select a workflow Zadanie 2 - CI/CD (gha_zad2.yml)
+✓ Created workflow_dispatch event for gha_zad2.yml at main
+https://github.com/KamilRodak/Zadanie2/actions/runs/26693375332
+
+To see the created workflow run, try: gh run view 26693375332
+To see runs for this workflow, try: gh run list --workflow="gha_zad2.yml"
+
+D:\Pliki\Pliki Studia\Programowanie_aplikacji_w_chmurze_obliczeniowej\Zadanie2>gh run watch
+? Select a workflow run * Zadanie 2 - CI/CD, Zadanie 2 - CI/CD [main] 2s ago
+X main Zadanie 2 - CI/CD · 26693375332
+Triggered via workflow_dispatch less than a minute ago
+
+JOBS
+X build-and-secure in 34s (ID 78673599984)
+  ✓ Set up job
+  ✓ Checkout repo
+  ✓ QEMU Set up
+  ✓ Buildx Set up
+  ✓ Zaloguj do ghcr.io
+  ✓ Zaloguj do Dockerhuba
+  ✓ Ekstrakcja metadanych dla GHCR
+  ✓ Zbuduj lokalnie obraz do skanu
+  X Skanowanie obrazu Trivy
+  X Jesli wykryto bledy, wyswietl informacje i przerwij
+  - Zbuduj i wypchnij GHCR
+  ✓ Post Skanowanie obrazu Trivy
+  ✓ Post Zbuduj lokalnie obraz do skanu
+  ✓ Post Zaloguj do Dockerhuba
+  ✓ Post Zaloguj do ghcr.io
+  ✓ Post Buildx Set up
+  ✓ Post QEMU Set up
+  ✓ Post Checkout repo
+  ✓ Complete job
+
+ANNOTATIONS
+! Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/github-script@v7, docker/build-push-action@v6, docker/login-action@v3, docker/metadata-action@v5, docker/setup-buildx-action@v3, docker/setup-qemu-action@v3. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+build-and-secure: .github#2
+
+X Wykryto podatnosci HIGH lub CRITICAL
+build-and-secure: .github#44
+
+X Process completed with exit code 1.
+build-and-secure: .github#587
+
+
+X Run Zadanie 2 - CI/CD (26693375332) completed with 'failure'
 ```
