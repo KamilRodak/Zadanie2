@@ -10,16 +10,17 @@
 
 ### tagowanie obrazu aplikacji (GHCR)
 Wykorzystano dynamiczne generowanie tagów za pomocą akcji `docker/metadata-action`:
-* **`latest`** – przypisywany automatycznie tylko dla najświeższych zmian scalonych z główną gałęzią (`main`/`master`).
-* **Skrócony hash commitu (SHA)** – unikalny, niezmienny (immutable) identyfikator generowany przy każdym uruchomieniu potoku, zapewniający pełną identyfikowalność (*traceability*) kodu.
-* **Wersjonowanie semantyczne (`v*.*.*`)** – wyzwalane automatycznie w momencie opublikowania oficjalnego tagu wersji w systemie Git (np. `v1.0.0`).
+* `latest` – przypisywany automatycznie tylko dla najświeższych zmian scalonych z główną gałęzią (`main`/`master`).
+* Skrócony hash commitu (SHA) – unikalny, niezmienny (immutable) identyfikator generowany przy każdym uruchomieniu potoku, zapewniający pełną identyfikowalność (*traceability*) kodu.
+* Wersjonowanie semantyczne (`v*.*.*`) – wyzwalane automatycznie w momencie opublikowania oficjalnego tagu wersji w systemie Git (np. `v1.0.0`).
 
 Uzasadnienie: 
-Zgodnie z dobrym praktykami projektowania aplikacji chmurowych, poleganie wyłącznie na tagu `latest` w środowiskach produkcyjnych jest antywzorcem. Stałe wiązanie obrazów z hashem SHA lub wersją SemVer gwarantuje powtarzalność wdrożeń i eliminuje błędy typu *race conditions* podczas skalowania środowisk kontenerowych.
+Zgodnie z dobrym praktykami projektowania aplikacji chmurowych, poleganie wyłącznie na tagu `latest` w środowiskach produkcyjnych jest antywzorcem. Stałe wiązanie obrazów z hashem SHA gwarantuje powtarzalność wdrożeń i eliminuje błędy typu *race conditions* podczas skalowania środowisk kontenerowych.
 
-### B. Oznaczenie danych cache (DockerHub)
+### oznaczenie danych cache (DockerHub)
 Dane pamięci podręcznej są kierowane do dedykowanego, publicznego repozytorium na DockerHub z jawnym tagiem `:cache`, wykorzystując backend typu `registry` w trybie `mode=max`.
 
+---
 # ustawienie secretów
 
 ```
@@ -32,6 +33,7 @@ D:\Pliki\Pliki Studia\Programowanie_aplikacji_w_chmurze_obliczeniowej\Zadanie2>g
 ✓ Set Actions secret DOCKERHUB_TOKEN for KamilRodak/Zadanie2
 ```
 ---
+
 # testy GHActions
 
 ### poprawne działanie
@@ -131,4 +133,15 @@ build-and-secure: .github#587
 
 
 X Run Zadanie 2 - CI/CD (26693375332) completed with 'failure'
+```
+
+### własne otagowanie
+```
+D:\Pliki\Pliki Studia\Programowanie_aplikacji_w_chmurze_obliczeniowej\Zadanie2>git tag v2.3.7
+
+D:\Pliki\Pliki Studia\Programowanie_aplikacji_w_chmurze_obliczeniowej\Zadanie2>git push origin v2.3.7
+Total 0 (delta 0), reused 0 (delta 0), pack-reused 0
+To https://github.com/KamilRodak/Zadanie2
+ * [new tag]         v2.3.7 -> v2.3.7
+
 ```
